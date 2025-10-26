@@ -6,7 +6,7 @@ data:
   backup.sh: |
     #!/bin/sh
 
-    echo "Starting backup process..."
+    echo "Starting backup process"
     TIMESTAMP=$(date +"%Y%m%dT%H%M%S")
     BACKUP_DIR="${BACKUP_DIR:-/backup/out}"
     RETENTION_DAYS="${RETENTION_DAYS:-7}"
@@ -20,7 +20,7 @@ data:
     mkdir -p "${BACKUP_DIR}/archive" || exit 2
 
     export PGPASSWORD="${PGPASSWORD}"
-    echo "Running pg_dump..."
+    echo "Running pg_dump"
     pg_dump -h "${PGHOST}" -U "${PGUSER}" -d "${PGDATABASE}" -F p | gzip > "${FILE_PATH}"
     
     if [ $? -eq 0 ]; then
@@ -31,7 +31,7 @@ data:
         exit 1
     fi
 
-    echo "Cleaning up old backups..."
+    echo "Cleaning up old backups"
     find "${BACKUP_DIR}" -maxdepth 1 -type f -name "${PGDATABASE}-*.sql.gz" -mtime +"${RETENTION_DAYS}" -print -exec mv {} "${BACKUP_DIR}/archive/" \; || true
-    echo "Backup process completed."
+    echo "Done"
 
