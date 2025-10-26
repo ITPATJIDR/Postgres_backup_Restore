@@ -6,16 +6,32 @@ data:
   backup.sh: |
     #!/bin/sh
 
+    echo "Starting backup process..."
     TIMESTAMP=$(date +"%Y%m%dT%H%M%S")
-    BACKUP_DIR="${BACKUP_DIR:-/backups}"
+    BACKUP_DIR="${BACKUP_DIR:-/backup/out}"
     RETENTION_DAYS="${RETENTION_DAYS:-7}"
     FILE_NAME="${PGDATABASE}-${TIMESTAMP}.sql.gz"
     FILE_PATH="${BACKUP_DIR}/${FILE_NAME}"
 
+    echo "Backup directory: ${BACKUP_DIR}"
+    echo "File name: ${FILE_NAME}"
+    echo "File path: ${FILE_PATH}"
+
     mkdir -p "${BACKUP_DIR}/archive" || exit 2
 
     export PGPASSWORD="${PGPASSWORD}"
-    pg_dump -h "${PGHOST}" -U "${PGUSER}" -d "${PGDATABASE}" -F p | gzip > "${FILE_PATH}"; 
+    echo "Running pg_dump..."
+    pg_dump -h "${PGHOST}" -U "${PGUSER}" -d "${PGDATABASE}" -F p | gzip > "${FILE_PATH}"
+    
+    if [ $? -eq 0 ]; then
+        echo "Backup completed successfully: ${FILE_PATH}"
+        ls -la "${FILE_PATH}"
+    else
+        echo "Backup failed!"
+        exit 1
+    fi
 
+    echo "Cleaning up old backups..."
     find "${BACKUP_DIR}" -maxdepth 1 -type f -name "${PGDATABASE}-*.sql.gz" -mtime +"${RETENTION_DAYS}" -print -exec mv {} "${BACKUP_DIR}/archive/" \; || true
+    echo "Backup process completed."
 

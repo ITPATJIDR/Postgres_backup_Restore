@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pg-backup-sa
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+spec:
+  schedule: "*/10 * * * *" 
+  concurrencyPolicy: "Forbid"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: pg-backup-sa
+          restartPolicy: Never
+          containers:
+          - name: pg-backup
+            image: alpine:3.18
+            command: ["/bin/sh","-c"]
+            args:
+            - |
+              set -euo pipefail
+              apk add --no-cache postgresql-client bash tar gzip curl openssl 
+              mkdir -p /backup/out
+              cp /backup/backup.sh /tmp/backup.sh
+              chmod +x /tmp/backup.sh
+              /tmp/backup.sh
+            env:
+            - name: PGHOST
+              value: "postgres" 
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secret
+                  key: PGUSER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secret
+                  key: POSTGRES_PASSWORD
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: pg-secret
+                  key: PGDATABASE
+            - name: BACKUP_TARGET
+              value: "pvc" 
+            - name: RETENTION_DAYS
+              value: "7"
+            volumeMounts:
+            - name: backup-script
+              mountPath: /backup
+            - name: backup-storage
+              mountPath: /backup/out
+          volumes:
+          - name: backup-script
+            configMap:
+              name: backup-scripts
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: backup-pvc

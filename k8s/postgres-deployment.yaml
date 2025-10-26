@@ -41,10 +41,15 @@ spec:
         volumeMounts:
         - name: pg-data
           mountPath: /var/lib/postgresql/data
+        - name: backup-storage
+          mountPath: /backup
       volumes:
       - name: pg-data
         persistentVolumeClaim:
           claimName: pg-data-pvc
+      - name: backup-storage
+        persistentVolumeClaim:
+          claimName: backup-pvc
 ---
 apiVersion: v1
 kind: Service
